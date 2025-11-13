@@ -31,7 +31,10 @@ namespace Web
 
         public void Configuration(IAppBuilder app)
         {
-            app.UseHangfireAspNet(GetHangfireServers);
+            // Remove app.UseHangfireAspNet(GetHangfireServers);
+            // Instead, use app.UseHangfireServer() to start the Hangfire server
+            app.UseHangfireServer();
+
             app.UseHangfireDashboard();
 
             // Let's also create a sample background job
