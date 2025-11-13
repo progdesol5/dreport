@@ -1,0 +1,43 @@
+USE [digita93_Senegal]
+GO
+/****** Object:  StoredProcedure [dbo].[GetSReport1]    Script Date: 7/14/2021 12:49:58 AM ******/
+--EXEC GetSReport1 '2021-07-11 12:00:00','2021-07-11 23:59:59',10
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER PROCEDURE [dbo].[GetSReport1]
+@FromDate VARCHAR(30),
+@ToDate VARCHAR(30),
+@TenentID VARCHAR(20)
+AS
+DECLARE @UserFirstName VARCHAR(100)
+--SELECT @UserFirstName = FIRST_NAME FROM USER_MST WITH (NOLOCK) WHERE TenentID =  @TenentID
+SELECT CRMActivities.ComplaintNumber as 'ComplaintNumber' , ISNULL(DeptName, '') as 'DeptName' , 
+CRMActivities.MasterCODE as 'MasterCODE' , 
+CRMActivities.TickComplainType as 'complain' , CRMActivities.TickDepartmentID as 'Department' , 
+CRMActivities.Patient_Name as Name , CRMActivities.MRN as 'MRN' , 
+CRMActivities.aspcomment as 'aspcomment' , 
+CRMActivities.MyStatus as MyStatus , CRMActivities.Patient_Name as Patient_Name, 
+CRMMainActivities.Type as investigation , CRMActivities.MRN as MRN ,
+CRMActivities.Contact as Contact ,DeptITSuper.NoticeEmail ,--as 'NoticeEmail' , 
+CRMActivities.TickCatID as 'Category' ,  CRMActivities.TickSubCatID as 'SubCategory' , 
+CRMMainActivities.Remarks AS MainRemarks, CRMMainActivities.UploadDate AS MainUploadDate,
+CRMActivities.ActivityPerform as 'Remarks', 
+CRMActivities.ReportedBy as 'ReportedBy' , CRMActivities.UploadDate as 'UploadDate', 
+--@UserFirstName AS UserFirstName,
+CRMMainActivities.USERNAME AS UserFirstName,
+(SELECT ISNULL(AttachmentPath, '') AS AttachmentPath FROM tbl_DMSAttachmentMst WITH (NOLOCK) 
+WHERE TenentID = @TenentID AND AttachmentById = CRMActivities.ComplaintNumber) AS attachmentdetail, CRMActivities.Active,
+DeptITSuper.ManagerEmail
+FROM REFTABLE 
+INNER JOIN CRMActivities ON REFTABLE.TenentID = CRMActivities.TenentID AND REFTABLE.REFID = CRMActivities.aspcomment 
+--JOIN USER_MST U ON U.TenentID = CRMActivities.TenentID
+RIGHT OUTER JOIN CRMMainActivities ON CRMActivities.TenentID = CRMMainActivities.TenentID 
+  AND CRMActivities.COMPID = CRMMainActivities.COMPID AND CRMActivities.MasterCODE = CRMMainActivities.MasterCODE 
+  AND CRMActivities.LocationID = CRMMainActivities.LocationID AND CRMActivities.Prefix = CRMMainActivities.Prefix 
+  and CRMMainActivities.UseReciepeID <>1 -- Line added by johar if logonly than not to print 18/05/2021
+LEFT OUTER JOIN DeptITSuper ON CRMActivities.TickDepartmentID = DeptITSuper.DeptID AND CRMActivities.TenentID = DeptITSuper.TenentID
+WHERE CRMActivities.TenentID =  @TenentID and (CRMActivities.UploadDate BETWEEN @FromDate AND @ToDate)
+-- and CRMActivities.Active='Y' -- Line added 01/12/2020
+ORDER BY ComplaintNumber, CRMActivities.TickDepartmentID --, DeptITSuper.NoticeEmail
